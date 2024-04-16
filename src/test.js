@@ -141,6 +141,7 @@ async function main() {
     const isBuilder = builder === 'builder'
     const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1
     const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
+    const isAstro = framework === 'astro'
 
     /**
      * Enter project folder
@@ -171,6 +172,14 @@ async function main() {
     if (isBootstrap) {
       console.log('Installing Bootstrap...')
       await runCommand('npm', ['install', 'bootstrap'])
+    }
+
+    /**
+     * Install Vue in Astro
+     */
+    if (isAstro) {
+      console.log('Installing Vue...')
+      await runCommand('npm', ['install', 'vue', '@astrojs/vue'])
     }
 
     /**
