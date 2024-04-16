@@ -3,6 +3,7 @@
  * - test different package managers
  * - think about npm < 6
  * - get notified if any framework files change
+ * - exit properly anytime
  */
 
 import { spawn } from 'child_process'
@@ -137,12 +138,6 @@ async function main() {
       return
     }
 
-    const isTs = ['nuxt'].indexOf(framework) !== -1 || ts
-    const isBuilder = builder === 'builder'
-    const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1
-    const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
-    const isAstro = framework === 'astro'
-
     /**
      * Enter project folder
      */
@@ -154,6 +149,17 @@ async function main() {
      */
     console.log('Running npm install...')
     await runCommand('npm', ['install'])
+
+    /**
+     * Variables
+     */
+    const isAstro = framework === 'astro'
+    const isTs = await isTypescript(process.cwd(), framework, ts)
+    const isBuilder = builder === 'builder'
+    const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1
+    const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
+    const sourcePath = path.join(__dirname, 'files', builder, framework, theme, isTs ? 'ts' : 'js')
+    const targetPath = process.cwd()
 
     /**
      * Install Tailwind
@@ -175,11 +181,15 @@ async function main() {
     }
 
     /**
-     * Install Vue in Astro
+     * Astro updates
      */
     if (isAstro) {
+      // Install Vue in Astro
       console.log('Installing Vue...')
       await runCommand('npm', ['install', 'vue', '@astrojs/vue'])
+
+      // Extend tsconfig.json
+      await updateAstroTsConfig(process.cwd())
     }
 
     /**
@@ -196,8 +206,6 @@ async function main() {
      * Copy Vueform files to project directory
      */
     console.log(`Copying additional files to ${projectName}...`)
-    const sourcePath = path.join(__dirname, 'files', builder, framework, theme, isTs ? 'ts' : 'js')
-    const targetPath = process.cwd()
     await copyFilesToProject(sourcePath, targetPath)
 
     console.log('')
@@ -253,6 +261,46 @@ async function directoryExists(path) {
       return false
     }
     throw error
+  }
+}
+
+async function isTypescript(dir, framework, ts) {
+  switch (framework) {
+    case 'nuxt':
+      return true
+      break
+
+    case 'astro':
+      const tsConfigPath = path.join(dir, 'tsconfig.json')
+      
+      try {
+        const tsConfig = await fsExtra.readJson(tsConfigPath)
+
+        return tsConfig.extends !== 'astro/tsconfigs/base'
+      } catch (err) {
+        console.error('Error reading tsconfig.json:', err)
+      }
+      break
+
+    default:
+      return ts
+  }
+}
+
+async function updateAstroTsConfig(dir) {
+  const tsConfigPath = path.join(dir, 'tsconfig.json')
+
+  try {
+    const tsConfig = await fsExtra.readJson(tsConfigPath)
+
+    tsConfig.compilerOptions = {
+      'jsx': 'preserve'
+    }
+
+    await fsExtra.writeJson(tsConfigPath, tsConfig, { spaces: 2 })
+    console.log('tsconfig.json has been updated')
+  } catch (err) {
+    console.error('Error updating tsconfig.json:', err)
   }
 }
 
