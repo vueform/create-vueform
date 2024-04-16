@@ -1,0 +1,24 @@
+{
+  "name": "create-template",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "create-template": "index.js",
+    "ctpl": "index.js"
+  },
+  "engines": {
+    "node": "^18.0.0 || >=20.0.0"
+  },
+  "files": [
+    "index.js",
+    "templates/*"
+  ],
+  "devDependencies": {
+    "cross-spawn": "^7.0.3",
+    "fs-extra": "^11.2.0",
+    "kolorist": "^1.8.0",
+    "minimist": "^1.2.8",
+    "prompts": "^2.4.2"
+  }
+}
