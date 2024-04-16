@@ -1,9 +1,5 @@
-:root {
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@import "./../../node_modules/bootstrap/scss/bootstrap";
+@import './../../node_modules/@vueform/vueform/themes/bootstrap/scss/index.scss';
 
 body {
   margin: 0;
@@ -13,7 +9,7 @@ body {
   min-height: 100vh;
 }
 
-#app {
+body > div:first-of-type {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;

@@ -2,6 +2,7 @@
  * @todo
  * - test different package managers
  * - think about npm < 6
+ * - get notified if any framework files change
  */
 
 import { spawn } from 'child_process'
@@ -20,7 +21,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const frameworks = [
   // @todo: remove --overwrite=yes
   { title: 'Vite', value: 'vite', command: 'npm create vite@latest %PROJECT_NAME% -- --template %TEMPLATE% --overwrite=yes' },
-  { title: 'Nuxt', value: 'nuxt', command: 'npx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER%' },
+  // @todo: remove --gitInit=false
+  { title: 'Nuxt', value: 'nuxt', command: 'npx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER% --gitInit=false' },
   { title: 'Astro', value: 'astro', command: 'npm create astro@latest %PROJECT_NAME% -- --install=yes' },
 ]
 
@@ -46,7 +48,9 @@ const tailwind = {
 
 async function main() {
   // @todo: remove
-  await runCommand('rm', ['-r', defaultProjectName])
+  if (await directoryExists(path.join(process.cwd(), defaultProjectName))) {
+    await runCommand('rm', ['-r', defaultProjectName])
+  } 
 
   try {
     const { projectName } = await prompts({
@@ -99,9 +103,15 @@ async function main() {
         active: 'yes',
         inactive: 'no',
       },
+      {
+        type: 'select',
+        name: 'theme',
+        message: 'Select a theme for your project:',
+        choices: themes
+      }
     ])
 
-    const { framework, ts, builder } = response
+    const { framework, ts, builder, theme } = response
 
     if (projectName && framework) {
       const fw = getFramework(framework)
@@ -122,20 +132,12 @@ async function main() {
       return
     }
 
-    const themeResponse = await prompts({
-      type: 'select',
-      name: 'theme',
-      message: 'Select a theme for your project:',
-      choices: themes
-    })
-
-    const { theme } = themeResponse
-
     if (!theme) {
       console.error('Project creation canceled.')
       return
     }
 
+    const isTs = ['nuxt'].indexOf(framework) !== -1 || ts
     const isBuilder = builder === 'builder'
     const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1
     const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
@@ -185,7 +187,7 @@ async function main() {
      * Copy Vueform files to project directory
      */
     console.log(`Copying additional files to ${projectName}...`)
-    const sourcePath = path.join(__dirname, 'files', builder, framework, theme, ts ? 'ts' : 'js')
+    const sourcePath = path.join(__dirname, 'files', builder, framework, theme, isTs ? 'ts' : 'js')
     const targetPath = process.cwd()
     await copyFilesToProject(sourcePath, targetPath)
 
