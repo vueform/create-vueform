@@ -1,24 +1,45 @@
 {
-  "name": "create-template",
+  "name": "create-vueform",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
+  "license": "MIT",
+  "author": "Adam Berecz",
   "bin": {
-    "create-template": "index.js",
-    "ctpl": "index.js"
+    "create-vueform": "index.js"
+  },
+  "files": [
+    "index.js",
+    "templates/*",
+    "dist"
+  ],
+  "scripts": {
+    "dev": "unbuild --stub",
+    "build": "unbuild",
+    "version": "auto-changelog -p && git add CHANGELOG.md",
+    "prepublishOnly": "npm run version && npm run build"
   },
   "engines": {
     "node": "^18.0.0 || >=20.0.0"
   },
-  "files": [
-    "index.js",
-    "templates/*"
-  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vueform/create-vueform.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vueform/create-vueform/issues"
+  },
+  "homepage": "https://github.com/vueform/create-vueform",
+  "funding": "https://github.com/sponsors/adamberecz",
   "devDependencies": {
-    "cross-spawn": "^7.0.3",
     "fs-extra": "^11.2.0",
     "kolorist": "^1.8.0",
     "minimist": "^1.2.8",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "rollup-plugin-license": "^3.3.1",
+    "unbuild": "^2.0.0"
+  },
+  "auto-changelog": {
+    "unreleased": true,
+    "commitLimit": false
   }
 }
