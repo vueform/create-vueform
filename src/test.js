@@ -44,7 +44,7 @@ const tailwind = {
     install: ['npm install -D @nuxtjs/tailwindcss'],
   },
   astro: {
-    install: ['npx astro add tailwind'],
+    install: ['npm install @astrojs/tailwind tailwindcss'],
   }
 }
 
@@ -209,10 +209,17 @@ async function main() {
     console.log(`Copying additional files to ${projectName}...`)
     await copyFilesToProject(sourcePath, targetPath)
 
+    /**
+     * Show finish instructions
+     */
     console.log('')
     console.log(cyan(`cd ${projectName}`))
     console.log(cyan(`npm run dev`))
 
+    /**
+     * Run dev server
+     * @todo: remove
+     */
     await runCommand('npm', ['run', 'dev'])
 
   } catch (err) {

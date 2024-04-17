@@ -1,0 +1,10 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TestForm from './../components/TestForm.vue';
+---
+
+<Layout title="Welcome to Astro.">
+  <div class="dark max-w-[320px] h-screen flex items-center justify-center mx-auto">
+    <TestForm client:only="vue" class="dark:text-white" />
+  </div>
+</Layout>
