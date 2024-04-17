@@ -67,4 +67,5 @@ Available flags:
 | flag | description |
 | --- | --- |
 | `--start` | Automatically starts the development server at the end of installation. |
+| `--force` | Force overrides existing project directory. |
 | `--publicKey` | Sets Public Key when installing Vueform + Builder. |
