@@ -1,0 +1,40 @@
+@import '@vueform/vueform/themes/vueform/scss/index.scss';
+
+@media (prefers-color-scheme: dark) {
+  :root, :before, :after, * {
+    @include vf-dark-vars;
+  }
+}
+
+:root {
+  background-color: #121212;
+  color: white;
+  
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+body > div:first-of-type {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    background-color: #ffffff;
+    color: black;
+  }
+}
