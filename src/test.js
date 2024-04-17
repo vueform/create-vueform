@@ -13,6 +13,11 @@ import fs_, { promises as fs } from 'fs'
 import fsExtra from 'fs-extra'
 import { fileURLToPath } from 'url'
 import { cyan } from 'kolorist'
+import minimist from 'minimist'
+
+// Avoids autoconversion to number of the project name by defining that the args
+// non associated with an option ( _ ) needs to be parsed as a string. See #4606
+const argv = minimist(process.argv.slice(2), { string: ['_'] })
 
 const defaultProjectName = 'vueform-project'
 const packageInfo = pkgFromUserAgent(process.env.npm_config_user_agent)
@@ -94,7 +99,7 @@ async function main() {
       {
         type: prev => prev === 'builder' ? 'text' : null,
         name: 'publicKey',
-        initial: 'obtain a FREE one at https://app.vueform.com',
+        initial: argv.publicKey || 'obtain a FREE one at https://app.vueform.com',
         message: 'Your Public Key: ',
         validate: async (name) => {
           if (!/^[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}$/.test(name)) {
@@ -110,7 +115,7 @@ async function main() {
         type: 'select',
         name: 'framework',
         message: 'Choose a framework:',
-        choices: (prev, { builder }) => frameworks.filter(f => builder !== 'builder' || f.value !== 'astro')
+        choices: frameworks,
       },
       {
         type: prev => prev === 'vite' ? 'toggle' : null,
