@@ -3,17 +3,24 @@
  * - test different package managers
  * - think about npm < 6
  * - get notified if any framework files change
- * - exit properly anytime
  */
 
 import { spawn } from 'child_process'
 import prompts from 'prompts'
 import path from 'path'
+import { promisify } from 'util'
+import { exec } from 'child_process'
 import fs_, { promises as fs } from 'fs'
 import fsExtra from 'fs-extra'
 import { fileURLToPath } from 'url'
-import { cyan } from 'kolorist'
+import {
+  cyan,
+  red,
+  green,
+} from 'kolorist'
 import minimist from 'minimist'
+
+const execAsync = promisify(exec)
 
 // Avoids autoconversion to number of the project name by defining that the args
 // non associated with an option ( _ ) needs to be parsed as a string. See #4606
@@ -31,7 +38,7 @@ const frameworks = [
   { title: 'Nuxt', value: 'nuxt', command: 'npx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER% --gitInit=false' },
   // @todo: remove --template=basics
   { title: 'Astro', value: 'astro', command: 'npm create astro@latest %PROJECT_NAME% -- --install=yes --template=basics' },
-  { title: 'Laravel', value: 'laravel', command: 'php /usr/local/bin/composer.phar create-project laravel/laravel %PROJECT_NAME%' },
+  { title: 'Laravel', value: 'laravel', command: '%COMPOSER_PATH% create-project laravel/laravel %PROJECT_NAME%' },
 ]
 
 const themes = [
@@ -84,6 +91,11 @@ async function main() {
         }
         return true
       }
+    }, 
+    {
+      onCancel: () => {
+        throw new Error(red('✖') + ' Operation cancelled')
+      },
     })
 
     const response = await prompts([
@@ -137,7 +149,12 @@ async function main() {
         message: 'Select a theme for your project:',
         choices: themes
       }
-    ])
+    ], 
+    {
+      onCancel: () => {
+        throw new Error(red('✖') + ' Operation cancelled')
+      },
+    })
 
     const { framework, ts, builder, publicKey } = response
 
@@ -146,17 +163,24 @@ async function main() {
     if (projectName && framework) {
       const fw = getFramework(framework)
 
-      console.log(`Creating project '${projectName}' using ${fw.title}...`)
+      status(`Creating project '${projectName}' using ${fw.title}...`)
 
       const template = framework === 'vite' ? `vue${ts ? '-ts' : ''}` : ''
+
+      let composerPath = ''
+
+      if (framework === 'laravel') {
+        composerPath = await getComposerPath()
+      } 
 
       const command = fw.command
         .replace('%PROJECT_NAME%', projectName)
         .replace('%TEMPLATE%', template)
         .replace('%PACKAGE_MANAGER%', packageManager)
+        .replace('%COMPOSER_PATH%', composerPath)
         .split(' ')
 
-      await runCommand(command[0], command.slice(1))
+      await runCommand(command[0], command.slice(1), `create project with ${fw.title}`)
     } else {
       console.error('Project creation canceled.')
       return
@@ -171,13 +195,12 @@ async function main() {
      * Enter project folder
      */
     process.chdir(projectName)
-    console.log(`Changed directory to ${projectName}`)
 
     /**
      * Install base dependencies
      */
-    console.log('Running npm install...')
-    await runCommand('npm', ['install'])
+    status('Installing dependencies...')
+    await runCommand('npm', ['install'], 'install dependencies')
 
     /**
      * Variables
@@ -195,10 +218,10 @@ async function main() {
      * Install Tailwind
      */
     if (isTailwind) {
-      console.log('Installing Tailwind...')
+      status('\nInstalling Tailwind...')
       await Promise.all(tailwind[framework].install.map(async (script) => {
         const command = script.split(' ')
-        await runCommand(command[0], command.slice(1))
+        await runCommand(command[0], command.slice(1), 'install Tailwind CSS')
       }))
     }
 
@@ -206,8 +229,8 @@ async function main() {
      * Install Bootstrap
      */
     if (isBootstrap) {
-      console.log('Installing Bootstrap...')
-      await runCommand('npm', ['install', 'bootstrap'])
+      console.log('\nInstalling Bootstrap...')
+      await runCommand('npm', ['install', 'bootstrap'], 'install Bootstrap')
     }
 
     /**
@@ -215,8 +238,8 @@ async function main() {
      */
     if (isAstro) {
       // Install Vue in Astro
-      console.log('Installing Vue...')
-      await runCommand('npm', ['install', 'vue', '@astrojs/vue'])
+      console.log('\nInstalling Vue...')
+      await runCommand('npm', ['install', 'vue', '@astrojs/vue'], 'install Vue in Astro')
 
       // Extend tsconfig.json
       await updateAstroTsConfig(process.cwd())
@@ -226,8 +249,8 @@ async function main() {
      * Install Vue in Laravel
      */
     if (isLaravel) {
-      console.log('Installing Vue...')
-      await runCommand('npm', ['install', '@vitejs/plugin-vue'])
+      console.log('\nInstalling Vue...')
+      await runCommand('npm', ['install', '@vitejs/plugin-vue'], 'install Vue in Laravel')
     }
 
     /**
@@ -237,13 +260,12 @@ async function main() {
       ? framework === 'nuxt' ? '@vueform/builder-nuxt' : '@vueform/vueform @vueform/builder'
       : framework === 'nuxt' ? '@vueform/nuxt' : '@vueform/vueform'
 
-    console.log(`Installing Vueform${isBuilder?' + Vueform Builder':''}...`)
-    await runCommand('npm', ['install', ...vueformPackage.split(' ')])
+    status(`\nInstalling Vueform${isBuilder?' Builder':''}...`)
+    await runCommand('npm', ['install', ...vueformPackage.split(' ')], `install ${vueformPackage}`)
 
     /**
      * Copy Vueform files to project directory
      */
-    console.log(`Copying additional files to ${projectName}...`)
     await copyFilesToProject(sourcePath, targetPath)
 
     /**
@@ -256,7 +278,8 @@ async function main() {
     /**
      * Show finish instructions
      */
-    console.log('')
+    console.log(green(`\n✔ Installation finished`))
+    console.log(`\nStart your project with:`)
     console.log(cyan(`cd ${projectName}`))
     console.log(cyan(`npm run dev`))
 
@@ -264,17 +287,15 @@ async function main() {
      * Run dev server
      * @todo: remove
      */
-    if (isLaravel) {
-      await runCommand('npm', ['run', 'build'])
-      await runCommand('php', ['artisan', 'serve'])
-    } else {
-      await runCommand('npm', ['run', 'dev'])
-    }
-
-
-  } catch (err) {
-    console.error('An error occurred:', err)
-    process.exit(1)
+    // if (isLaravel) {
+    //   await runCommand('npm', ['run', 'build'])
+    //   await runCommand('php', ['artisan', 'serve'])
+    // } else {
+    //   await runCommand('npm', ['run', 'dev'])
+    // }
+  } catch (cancelled) {
+    console.log(red(cancelled.message))
+    return
   }
 }
 
@@ -292,11 +313,13 @@ function pkgFromUserAgent(userAgent) {
   }
 }
 
-function runCommand(command, args) {
+function runCommand(command, args, name = '') {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, args, { stdio: 'inherit', shell: true })
+    const childProcess = spawn(command, args, {
+      stdio: 'inherit',
+    })
 
-    process.on('close', code => {
+    childProcess.on('close', code => {
       if (code !== 0) {
         reject(new Error(`${command} exited with code ${code}`))
       } else {
@@ -304,10 +327,14 @@ function runCommand(command, args) {
       }
     })
 
-    process.on('error', err => {
-      reject(new Error(`Failed to start process: ${err.message}`))
+    childProcess.on('error', err => {
+      reject(new Error(`Failed to ${name ? name : 'start process'}: ${err.message}`))
     })
   })
+}
+
+function status (msg) {
+  return console.log(cyan(msg))
 }
 
 async function directoryExists(path) {
@@ -336,7 +363,7 @@ async function isTypescript(dir, framework, ts) {
 
         return tsConfig.extends !== 'astro/tsconfigs/base'
       } catch (err) {
-        console.error('Error reading tsconfig.json:', err)
+        throw new Error(`Error reading tsconfig.json: ${err.message}`)
       }
       break
 
@@ -360,9 +387,8 @@ async function updateAstroTsConfig(dir) {
     }
 
     await fsExtra.writeJson(tsConfigPath, tsConfig, { spaces: 2 })
-    console.log('tsconfig.json has been updated')
   } catch (err) {
-    console.error('Error updating tsconfig.json:', err)
+    throw new Error(`Error updating tsconfig.json: ${err.message}`)
   }
 }
 
@@ -377,11 +403,11 @@ async function addPublicKey(dir, publicKey) {
     } else if (await fsExtra.pathExists(tsFilePath)) {
         filePath = tsFilePath
     } else {
-        console.error('No vueform.config.js or vueform.config.ts file found.')
+        throw new Error(`No vueform.config.js or vueform.config.ts file found: ${err.message}`)
         return
     }
   } catch (err) {
-    console.error('Error checking for config files:', err)
+    throw new Error(`Error checking for config files: ${err.message}`)
     return
   }
 
@@ -391,19 +417,57 @@ async function addPublicKey(dir, publicKey) {
     fileContent = fileContent.replace(/YOUR_PUBLIC_KEY/g, publicKey)
     
     await fsExtra.writeFile(filePath, fileContent, 'utf8')
-    console.log(`Public Key has been inserted into ${path.basename(filePath)}`)
   } catch (err) {
-    console.error(`Error inserting Public Key to ${path.basename(filePath)}:`, err)
-    }
+    throw new Error(`Error inserting Public Key to ${path.basename(filePath)}: ${err.message}`)
+  }
 }
 
 async function copyFilesToProject(sourceDir, targetDir) {
   try {
     await fsExtra.copy(sourceDir, targetDir, { overwrite: true })
-    console.log('Files copied successfully.')
   } catch (err) {
-    console.error('Error copying files:', err)
+    throw new Error(`Error copying files: ${err.message}`)
   }
+}
+
+async function getComposerPath() {
+  const paths = [
+    '/usr/local/bin/composer',
+    '/usr/local/bin/composer.phar',
+    '/usr/bin/composer',
+    '/usr/bin/composer.phar',
+    'C:\\ProgramData\\ComposerSetup\\bin\\composer',
+    'C:\\ProgramData\\ComposerSetup\\bin\\composer.phar',
+    'C:\\Program Files\\Composer\\composer.phar',
+    'C:\\Program Files\\Composer\\composer'
+  ]
+
+  let path = 'composer'
+
+  try {
+    await execAsync('composer --version')
+    return path
+  } catch (error) {
+    path = ''
+  }
+
+  paths.forEach((p) => {
+    if (fsExtra.existsSync(p)) {
+      path = p
+    }
+  })
+
+  if (path.endsWith('.phar')) {
+    path = `php ${path}`
+  }
+
+  if (!path) {
+    console.error(red('\nComposer not found. Please ensure Composer is installed and added to your PATH.'))
+    console.error(red('Visit https://getcomposer.org/download/ for installation instructions.\n'))
+    throw new Error(red('✖') + ' Operation cancelled')
+  }
+
+  return path
 }
 
 main()
