@@ -92,6 +92,21 @@ async function main() {
         ]
       },
       {
+        type: prev => prev === 'builder' ? 'text' : null,
+        name: 'publicKey',
+        initial: 'obtain a FREE one at https://app.vueform.com',
+        message: 'Your Public Key: ',
+        validate: async (name) => {
+          if (!/^[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}$/.test(name)) {
+            return 'Invalid Public Key. Please go to https://app.vueform.com and generate one for FREE.'
+          }
+          if (!name) {
+            return 'Please provide your Public Key. If you don\'t have one go to https://app.vueform.com and generate one for FREE.'
+          }
+          return true
+        }
+      },
+      {
         type: 'select',
         name: 'framework',
         message: 'Choose a framework:',
@@ -106,14 +121,16 @@ async function main() {
         inactive: 'no',
       },
       {
-        type: 'select',
+        type: (prev, { builder }) => builder === 'builder' ? null : 'select',
         name: 'theme',
         message: 'Select a theme for your project:',
         choices: themes
       }
     ])
 
-    const { framework, ts, builder, theme } = response
+    const { framework, ts, builder, publicKey } = response
+
+    const theme = builder === 'builder' ? 'tailwind' : response.theme
 
     if (projectName && framework) {
       const fw = getFramework(framework)
@@ -157,7 +174,7 @@ async function main() {
     const isAstro = framework === 'astro'
     const isTs = await isTypescript(process.cwd(), framework, ts)
     const isBuilder = builder === 'builder'
-    const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1
+    const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1 || isBuilder
     const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
     const sourcePath = path.join(__dirname, 'files', builder, framework, theme, isTs ? 'ts' : 'js')
     const targetPath = process.cwd()
@@ -201,13 +218,20 @@ async function main() {
       : framework === 'nuxt' ? '@vueform/nuxt' : '@vueform/vueform'
 
     console.log(`Installing Vueform${isBuilder?' + Vueform Builder':''}...`)
-    await runCommand('npm', ['install', vueformPackage])
+    await runCommand('npm', ['install', ...vueformPackage.split(' ')])
 
     /**
      * Copy Vueform files to project directory
      */
     console.log(`Copying additional files to ${projectName}...`)
     await copyFilesToProject(sourcePath, targetPath)
+
+    /**
+     * Inserting Public Key
+     */
+    if (isBuilder) {
+      await addPublicKey(process.cwd(), publicKey)
+    }
 
     /**
      * Show finish instructions
@@ -310,6 +334,37 @@ async function updateAstroTsConfig(dir) {
   } catch (err) {
     console.error('Error updating tsconfig.json:', err)
   }
+}
+
+async function addPublicKey(dir, publicKey) {
+  const jsFilePath = path.join(dir, 'vueform.config.js')
+  const tsFilePath = path.join(dir, 'vueform.config.ts')
+
+  let filePath
+  try {
+    if (await fsExtra.pathExists(jsFilePath)) {
+        filePath = jsFilePath
+    } else if (await fsExtra.pathExists(tsFilePath)) {
+        filePath = tsFilePath
+    } else {
+        console.error('No vueform.config.js or vueform.config.ts file found.')
+        return
+    }
+  } catch (err) {
+    console.error('Error checking for config files:', err)
+    return
+  }
+
+  try {
+    let fileContent = await fsExtra.readFile(filePath, 'utf8')
+    
+    fileContent = fileContent.replace(/YOUR_PUBLIC_KEY/g, publicKey)
+    
+    await fsExtra.writeFile(filePath, fileContent, 'utf8')
+    console.log(`Public Key has been inserted into ${path.basename(filePath)}`)
+  } catch (err) {
+    console.error(`Error inserting Public Key to ${path.basename(filePath)}:`, err)
+    }
 }
 
 async function copyFilesToProject(sourceDir, targetDir) {
