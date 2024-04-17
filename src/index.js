@@ -1,8 +1,6 @@
 /**
  * @todo
- * - test different package managers
- * - think about npm < 6
- * - get notified if any framework files change
+ * - pass answers as args
  */
 
 import prompts from 'prompts'
@@ -19,8 +17,8 @@ import {
   green,
 } from 'kolorist'
 
-const minNodeVersion = '12.0.0'
-const minNpmVersion = '6.0.0'
+const minNodeVersion = '18.0.0'
+const minNpmVersion = '7.0.0'
 
 const execAsync = promisify(exec)
 
@@ -30,14 +28,28 @@ const defaultProjectName = 'vueform-project'
 const packageInfo = pkgFromUserAgent(process.env.npm_config_user_agent)
 const packageManager = packageInfo ? packageInfo.name : 'npm'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const start = !!argv.start
+const force = !!argv.force
 
 const frameworks = [
-  // @todo: remove --overwrite=yes
-  { title: 'Vite', value: 'vite', command: 'npm create vite@latest %PROJECT_NAME% -- --template %TEMPLATE% --overwrite=yes' },
-  // @todo: remove --gitInit=false
-  { title: 'Nuxt', value: 'nuxt', command: 'npx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER% --gitInit=false' },
-  // @todo: remove --template=basics
-  { title: 'Astro', value: 'astro', command: 'npm create astro@latest %PROJECT_NAME% -- --install=yes --template=basics' },
+  { title: 'Vite', value: 'vite', command: {
+    npm: 'npm create vite@latest %PROJECT_NAME% -- --template %TEMPLATE%',
+    yarn: 'yarn create vite %PROJECT_NAME% --template %TEMPLATE%',
+    pnpm: 'pnpm create vite %PROJECT_NAME% --template %TEMPLATE%',
+    bun: 'bun create vite %PROJECT_NAME% --template %TEMPLATE%',
+  } },
+  { title: 'Nuxt', value: 'nuxt', command: {
+    npm: 'npx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER%',
+    yarn: 'npx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER%',
+    pnpm: 'pnpm dlx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER%',
+    bun: 'bunx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER%',
+  } },
+  { title: 'Astro', value: 'astro', command: {
+    npm: 'npm create astro@latest %PROJECT_NAME% -- --install=yes',
+    yarn: 'yarn create astro %PROJECT_NAME% --install=yes',
+    pnpm: 'pnpm create astro %PROJECT_NAME% --install=yes',
+    bun: 'bun create astro %PROJECT_NAME% --install=yes',
+  } },
   { title: 'Laravel', value: 'laravel', command: '%COMPOSER_PATH% create-project laravel/laravel %PROJECT_NAME%' },
 ]
 
@@ -69,10 +81,6 @@ process.env.PATH += ':/usr/local/bin'
 checkNodeAndNpmVersions()
 
 async function main() {
-  // @todo: remove
-  if (await directoryExists(path.join(process.cwd(), defaultProjectName))) {
-    await runCommand('rm', ['-r', defaultProjectName])
-  }
 
   try {
     const { projectName } = await prompts({
@@ -84,10 +92,9 @@ async function main() {
         if (!/^[a-zA-Z0-9]+[a-zA-Z0-9-_]*$/.test(name)) {
           return 'Invalid project name. Use only alphanumeric, underscore, and hyphen characters and do not start with a hyphen or underscore.'
         }
-        // @todo: uncomment
-        // if (await directoryExists(name)) {
-        //   return `The directory '${name}' already exists.`
-        // }
+        if (!force && await directoryExists(name)) {
+          return `The directory '${name}' already exists.`
+        }
         if (!name) {
           return 'Please provide a project name'
         }
@@ -99,6 +106,10 @@ async function main() {
         throw new Error(red('✖') + ' Operation cancelled')
       },
     })
+
+    if (force && await directoryExists(path.join(process.cwd(), projectName))) {
+      await runCommand('rm', ['-r', defaultProjectName])
+    }
 
     const response = await prompts([
       {
@@ -175,7 +186,9 @@ async function main() {
         composerPath = await getComposerPath()
       } 
 
-      const command = fw.command
+      let command = typeof fw.command === 'string' ? fw.command : fw.command[packageManager]
+
+      command = command
         .replace('%PROJECT_NAME%', projectName)
         .replace('%TEMPLATE%', template)
         .replace('%PACKAGE_MANAGER%', packageManager)
@@ -201,7 +214,7 @@ async function main() {
     /**
      * Install base dependencies
      */
-    status('Installing dependencies...')
+    status('\nInstalling dependencies...')
     await runCommand('npm', ['install'], 'install dependencies')
 
     /**
@@ -281,19 +294,19 @@ async function main() {
      * Show finish instructions
      */
     console.log(green(`\n✔ Installation finished`))
-    console.log(`\nStart your project with:`)
-    console.log(cyan(`cd ${projectName}`))
-    console.log(cyan(`npm run dev`))
+    console.log(cyan(`\ncd ${projectName}`))
+    console.log(cyan(`${packageManager} run dev\n`))
 
     /**
      * Run dev server
-     * @todo: remove
      */
-    if (isLaravel) {
-      await runCommand('npm', ['run', 'build'])
-      await runCommand('php', ['artisan', 'serve'])
-    } else {
-      await runCommand('npm', ['run', 'dev'])
+    if (start) {
+      if (isLaravel) {
+        await runCommand('npm', ['run', 'build'])
+        await runCommand('php', ['artisan', 'serve'])
+      } else {
+        await runCommand('npm', ['run', 'dev'])
+      }
     }
   } catch (cancelled) {
     console.log(red(cancelled.message))
@@ -316,6 +329,17 @@ function pkgFromUserAgent(userAgent) {
 }
 
 function runCommand(command, args, name = '') {
+  if (command === 'npm') {
+    command = ['npm', 'yarn', 'pnpm', 'bun'].indexOf(packageManager) !== -1 ? packageManager : 'npm'
+
+    if (args[0] === 'install' && args.length > 1) {
+      if (['yarn', 'pnpm'].indexOf(packageManager) !== -1) {
+        args = [...args]
+        args[0] = 'add'
+      }
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const childProcess = spawn(command, args, {
       stdio: 'inherit',
