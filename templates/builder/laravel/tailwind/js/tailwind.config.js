@@ -4,9 +4,10 @@ import builderPlugin from '@vueform/builder/tailwind'
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./resources/**/*.blade.php",
-    "./resources/**/*.js",
-    "./resources/**/*.vue",
+    './resources/**/*.blade.php',
+    './resources/**/*.js',
+    './resources/**/*.vue',
+    './vueform.config.js',
     './node_modules/@vueform/vueform/themes/tailwind/**/*.vue',
     './node_modules/@vueform/vueform/themes/tailwind/**/*.js',
     './node_modules/@vueform/builder/**/*.js',

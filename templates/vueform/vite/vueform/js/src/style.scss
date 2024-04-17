@@ -1,10 +1,10 @@
 @import '@vueform/vueform/themes/vueform/scss/index.scss';
 
-:root {
-  background-color: #121212;
-}
-
 @media (prefers-color-scheme: dark) {
+  :root {
+    background-color: #121212;
+  }
+  
   :root, :before, :after, * {
     @include vf-dark-vars;
   }

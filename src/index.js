@@ -176,7 +176,7 @@ async function main() {
     if (projectName && framework) {
       const fw = getFramework(framework)
 
-      status(`Creating project '${projectName}' using ${fw.title}...`)
+      status(`\nCreating project '${projectName}' using ${fw.title}...`)
 
       const template = framework === 'vite' ? `vue${ts ? '-ts' : ''}` : ''
 
