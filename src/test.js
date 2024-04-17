@@ -31,6 +31,7 @@ const frameworks = [
   { title: 'Nuxt', value: 'nuxt', command: 'npx nuxi@latest init %PROJECT_NAME% --packageManager=%PACKAGE_MANAGER% --gitInit=false' },
   // @todo: remove --template=basics
   { title: 'Astro', value: 'astro', command: 'npm create astro@latest %PROJECT_NAME% -- --install=yes --template=basics' },
+  { title: 'Laravel', value: 'laravel', command: 'php /usr/local/bin/composer.phar create-project laravel/laravel %PROJECT_NAME%' },
 ]
 
 const themes = [
@@ -50,14 +51,19 @@ const tailwind = {
   },
   astro: {
     install: ['npm install @astrojs/tailwind tailwindcss'],
-  }
+  },
+  laravel: {
+    install: ['npm install -D tailwindcss postcss autoprefixer'],
+  },
 }
+
+process.env.PATH += ':/usr/local/bin'
 
 async function main() {
   // @todo: remove
   if (await directoryExists(path.join(process.cwd(), defaultProjectName))) {
     await runCommand('rm', ['-r', defaultProjectName])
-  } 
+  }
 
   try {
     const { projectName } = await prompts({
@@ -118,7 +124,7 @@ async function main() {
         choices: frameworks,
       },
       {
-        type: prev => prev === 'vite' ? 'toggle' : null,
+        type: prev => prev !== 'vite' || prev === 'laravel' ? null : 'toggle',
         name: 'ts',
         message: 'Do you plan to use TypeScript?',
         initial: 'yes',
@@ -181,6 +187,7 @@ async function main() {
     const isBuilder = builder === 'builder'
     const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1 || isBuilder
     const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
+    const isLaravel = framework === 'laravel'
     const sourcePath = path.join(__dirname, 'files', builder, framework, theme, isTs ? 'ts' : 'js')
     const targetPath = process.cwd()
 
@@ -213,6 +220,14 @@ async function main() {
 
       // Extend tsconfig.json
       await updateAstroTsConfig(process.cwd())
+    }
+
+    /**
+     * Install Vue in Laravel
+     */
+    if (isLaravel) {
+      console.log('Installing Vue...')
+      await runCommand('npm', ['install', '@vitejs/plugin-vue'])
     }
 
     /**
@@ -249,7 +264,13 @@ async function main() {
      * Run dev server
      * @todo: remove
      */
-    await runCommand('npm', ['run', 'dev'])
+    if (isLaravel) {
+      await runCommand('npm', ['run', 'build'])
+      await runCommand('php', ['artisan', 'serve'])
+    } else {
+      await runCommand('npm', ['run', 'dev'])
+    }
+
 
   } catch (err) {
     console.error('An error occurred:', err)
@@ -273,7 +294,7 @@ function pkgFromUserAgent(userAgent) {
 
 function runCommand(command, args) {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, args, { stdio: 'inherit' })
+    const process = spawn(command, args, { stdio: 'inherit', shell: true })
 
     process.on('close', code => {
       if (code !== 0) {
@@ -317,6 +338,10 @@ async function isTypescript(dir, framework, ts) {
       } catch (err) {
         console.error('Error reading tsconfig.json:', err)
       }
+      break
+
+    case 'laravel':
+      return false
       break
 
     default:
