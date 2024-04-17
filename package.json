@@ -15,8 +15,7 @@
   "scripts": {
     "dev": "unbuild --stub",
     "build": "unbuild",
-    "version": "auto-changelog -p && git add CHANGELOG.md",
-    "prepublishOnly": "npm run version && npm run build"
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": "^18.0.0 || >=20.0.0"
@@ -37,9 +36,5 @@
     "prompts": "^2.4.2",
     "rollup-plugin-license": "^3.3.1",
     "unbuild": "^2.0.0"
-  },
-  "auto-changelog": {
-    "unreleased": true,
-    "commitLimit": false
   }
 }
