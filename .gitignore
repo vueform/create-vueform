@@ -1,5 +1,4 @@
 # Dependencies
-node_modules/
 jspm_packages
 
 package-lock.json
