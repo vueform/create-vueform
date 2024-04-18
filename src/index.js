@@ -113,7 +113,7 @@ async function main() {
 
     const response = await prompts([
       {
-        type: 'select',
+        type: !!argv.builder ? null : 'select',
         name: 'builder',
         message: 'Which libraries do you want to install?',
         choices: [
@@ -128,7 +128,7 @@ async function main() {
         ]
       },
       {
-        type: prev => prev === 'builder' ? 'text' : null,
+        type: prev => !!argv.builder || prev === 'builder' ? 'text' : null,
         name: 'publicKey',
         initial: argv.publicKey || 'obtain a FREE one at https://app.vueform.com',
         message: 'Your Public Key: ',
@@ -157,7 +157,7 @@ async function main() {
         inactive: 'no',
       },
       {
-        type: (prev, { builder }) => builder === 'builder' ? null : 'select',
+        type: (prev, { builder }) => !!argv.builder || builder === 'builder' ? null : 'select',
         name: 'theme',
         message: 'Select a theme for your project:',
         choices: themes
@@ -169,9 +169,22 @@ async function main() {
       },
     })
 
-    const { framework, ts, builder, publicKey } = response
+    const { framework, ts, publicKey } = response
 
-    const theme = builder === 'builder' ? 'tailwind' : response.theme
+    console.log(projectName)
+
+    /**
+     * Variables
+     */
+    const isBuilder = !!argv.builder || response.builder === 'builder'
+    const theme = isBuilder ? 'tailwind' : response.theme
+    const isAstro = framework === 'astro'
+    const isTs = await isTypescript(process.cwd(), framework, ts)
+    const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1 || isBuilder
+    const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
+    const isLaravel = framework === 'laravel'
+    const sourcePath = path.join(__dirname, '../', 'templates', isBuilder ? 'builder' : 'vueform', framework, theme, isTs ? 'ts' : 'js')
+    const targetPath = path.join(process.cwd(), projectName)
 
     if (projectName && framework) {
       const fw = getFramework(framework)
@@ -217,17 +230,6 @@ async function main() {
     status('\nInstalling dependencies...')
     await runCommand('npm', ['install'], 'install dependencies')
 
-    /**
-     * Variables
-     */
-    const isAstro = framework === 'astro'
-    const isTs = await isTypescript(process.cwd(), framework, ts)
-    const isBuilder = builder === 'builder'
-    const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1 || isBuilder
-    const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
-    const isLaravel = framework === 'laravel'
-    const sourcePath = path.join(__dirname, '../', 'templates', builder, framework, theme, isTs ? 'ts' : 'js')
-    const targetPath = process.cwd()
 
     /**
      * Install Tailwind
