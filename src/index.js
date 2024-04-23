@@ -113,7 +113,7 @@ async function main() {
 
     const response = await prompts([
       {
-        type: !!argv.builder ? null : 'select',
+        type: !!argv.builder || !!argv.b ? null : 'select',
         name: 'builder',
         message: 'Which libraries do you want to install?',
         choices: [
@@ -128,9 +128,9 @@ async function main() {
         ]
       },
       {
-        type: prev => !!argv.builder || prev === 'builder' ? 'text' : null,
+        type: prev => !!argv.builder || !!argv.b || prev === 'builder' ? 'text' : null,
         name: 'publicKey',
-        initial: argv.publicKey || 'obtain a FREE one at https://app.vueform.com',
+        initial: argv.publicKey || argv.pk || 'obtain a FREE one at https://app.vueform.com',
         message: 'Your Public Key: ',
         validate: async (name) => {
           if (!/^[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}$/.test(name)) {
@@ -157,7 +157,7 @@ async function main() {
         inactive: 'no',
       },
       {
-        type: (prev, { builder }) => !!argv.builder || builder === 'builder' ? null : 'select',
+        type: (prev, { builder }) => !!argv.builder || !!argv.b || builder === 'builder' ? null : 'select',
         name: 'theme',
         message: 'Select a theme for your project:',
         choices: themes
@@ -176,7 +176,7 @@ async function main() {
     /**
      * Variables
      */
-    const isBuilder = !!argv.builder || response.builder === 'builder'
+    const isBuilder = !!argv.builder || !!argv.b || response.builder === 'builder'
     const theme = isBuilder ? 'tailwind' : response.theme
     const isAstro = framework === 'astro'
     const isTs = await isTypescript(process.cwd(), framework, ts)
