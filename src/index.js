@@ -179,12 +179,9 @@ async function main() {
     const isBuilder = !!argv.builder || !!argv.b || response.builder === 'builder'
     const theme = isBuilder ? 'tailwind' : response.theme
     const isAstro = framework === 'astro'
-    const isTs = await isTypescript(process.cwd(), framework, ts)
     const isTailwind = ['tailwind', 'tailwind-material'].indexOf(theme) !== -1 || isBuilder
     const isBootstrap = ['bootstrap'].indexOf(theme) !== -1
     const isLaravel = framework === 'laravel'
-    const sourcePath = path.join(__dirname, '../', 'templates', isBuilder ? 'builder' : 'vueform', framework, theme, isTs ? 'ts' : 'js')
-    const targetPath = path.join(process.cwd(), projectName)
 
     if (projectName && framework) {
       const fw = getFramework(framework)
@@ -223,6 +220,13 @@ async function main() {
      * Enter project folder
      */
     process.chdir(projectName)
+
+    /**
+     * More variables
+     */
+    const isTs = await isTypescript(process.cwd(), framework, ts)
+    const sourcePath = path.join(__dirname, '../', 'templates', isBuilder ? 'builder' : 'vueform', framework, theme, isTs ? 'ts' : 'js')
+    const targetPath = process.cwd()
 
     /**
      * Install base dependencies
