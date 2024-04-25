@@ -28,8 +28,8 @@ const defaultProjectName = 'vueform-project'
 const packageInfo = pkgFromUserAgent(process.env.npm_config_user_agent)
 const packageManager = packageInfo ? packageInfo.name : 'npm'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const start = !!argv.start
-const force = !!argv.force
+const start = !!argv.start || !!argv.s
+const force = !!argv.force || !!argv.f
 
 const frameworks = [
   { title: 'Vite', value: 'vite', command: {
