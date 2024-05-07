@@ -338,16 +338,16 @@ function runCommand(command, args, name = '') {
   if (command === 'npm') {
     command = ['npm', 'yarn', 'pnpm', 'bun'].indexOf(packageManager) !== -1 ? packageManager : 'npm'
 
-    if (/^win/.test(process.platform)) {
-      command += '.cmd'
-    }
-
     if (args[0] === 'install' && args.length > 1) {
       if (['yarn', 'pnpm'].indexOf(packageManager) !== -1) {
         args = [...args]
         args[0] = 'add'
       }
     }
+  }
+
+  if (/^win/.test(process.platform)) {
+    command += '.cmd'
   }
 
   return new Promise((resolve, reject) => {
