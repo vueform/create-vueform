@@ -299,7 +299,13 @@ async function main() {
      */
     console.log(green(`\n✔ Installation finished`))
     console.log(cyan(`\ncd ${projectName}`))
-    console.log(cyan(`${packageManager} run dev\n`))
+
+    if (isLaravel) {
+      console.log(cyan(`${packageManager} run build\n`))
+      console.log(cyan(`php artisan serve\n`))
+    } else {
+      console.log(cyan(`${packageManager} run dev\n`))
+    }
 
     /**
      * Run dev server
