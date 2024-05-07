@@ -6,6 +6,8 @@ import TestForm from './../components/TestForm.vue';
 @import './../styles/style.scss';
 </style>
 
+<script is:inline type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBCToIMP1Rk6ZbGcfnJ2iwsnb09_lnxLmY&libraries=places"></script>
+
 <Layout title="Welcome to Astro.">
   <TestForm client:only="vue" />
 </Layout>

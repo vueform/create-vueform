@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import FormBuilder from '../components/FormBuilder.vue';
 ---
+<script is:inline type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBCToIMP1Rk6ZbGcfnJ2iwsnb09_lnxLmY&libraries=places"></script>
 
 <Layout title="Welcome to Astro.">
   <FormBuilder client:only="vue"/>
