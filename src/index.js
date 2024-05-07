@@ -171,8 +171,6 @@ async function main() {
 
     const { framework, ts, publicKey } = response
 
-    console.log(projectName)
-
     /**
      * Variables
      */
@@ -362,6 +360,7 @@ function runCommand(command, args, name = '') {
   return new Promise((resolve, reject) => {
     const childProcess = spawn(command, args, {
       stdio: 'inherit',
+      shell: true,
     })
 
     childProcess.on('close', code => {
