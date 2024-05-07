@@ -352,8 +352,6 @@ function runCommand(command, args, name = '') {
         '/q',
         ...args.slice(1)
       ]
-    } else {
-      command += '.cmd'
     }
   }
 
