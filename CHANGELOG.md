@@ -1,3 +1,10 @@
+## v1.0.12
+
+> `2024-05-07`
+
+### 🎉 Feature
+- Added Google Places API script to templates.
+
 ## v1.0.7 - v1.0.11
 
 > `2024-05-07`
