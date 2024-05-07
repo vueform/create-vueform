@@ -87,7 +87,7 @@ async function main() {
       type: 'text',
       name: 'projectName',
       initial: defaultProjectName,
-      message: 'What is your project name?',
+      message: 'Choose a project name:',
       validate: async (name) => {
         if (!/^[a-zA-Z0-9]+[a-zA-Z0-9-_]*$/.test(name)) {
           return 'Invalid project name. Use only alphanumeric, underscore, and hyphen characters and do not start with a hyphen or underscore.'
@@ -337,6 +337,10 @@ function pkgFromUserAgent(userAgent) {
 function runCommand(command, args, name = '') {
   if (command === 'npm') {
     command = ['npm', 'yarn', 'pnpm', 'bun'].indexOf(packageManager) !== -1 ? packageManager : 'npm'
+
+    if (/^win/.test(process.platform)) {
+      command += '.cmd'
+    }
 
     if (args[0] === 'install' && args.length > 1) {
       if (['yarn', 'pnpm'].indexOf(packageManager) !== -1) {
