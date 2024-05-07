@@ -347,7 +347,16 @@ function runCommand(command, args, name = '') {
   }
 
   if (/^win/.test(process.platform)) {
-    command += '.cmd'
+    if (command === 'rm') {
+      command = 'rmdir'
+      args = [
+        '/s',
+        '/q',
+        ...args.slice(1)
+      ]
+    } else {
+      command += '.cmd'
+    }
   }
 
   return new Promise((resolve, reject) => {
