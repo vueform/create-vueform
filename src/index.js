@@ -63,16 +63,16 @@ const themes = [
 
 const tailwind = {
   vite: {
-    install: ['npm install -D tailwindcss postcss autoprefixer'],
+    install: ['npm install -D tailwindcss@3 postcss autoprefixer'],
   },
   nuxt: {
-    install: ['npm install -D @nuxtjs/tailwindcss'],
+    install: ['npm install -D @nuxtjs/tailwindcss@6'],
   },
   astro: {
     install: ['npm install @astrojs/tailwind tailwindcss'],
   },
   laravel: {
-    install: ['npm install -D tailwindcss postcss autoprefixer'],
+    install: ['npm install -D tailwindcss@3 postcss autoprefixer'],
   },
 }
 
