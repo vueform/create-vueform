@@ -1,3 +1,10 @@
+## v1.0.13
+
+> `2025-02-07`
+
+### 🎉 Feature
+- Fixed Tailwind CSS at v3 for the time being.
+
 ## v1.0.12
 
 > `2024-05-07`
